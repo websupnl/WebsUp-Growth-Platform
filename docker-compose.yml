@@ -1,0 +1,43 @@
+# Lokaal draaien en als basis voor Coolify.
+# Op Coolify koppel je de app aan een managed Postgres of aan deze db-service.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: websup
+      POSTGRES_PASSWORD: websup
+      POSTGRES_DB: websup_growth
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U websup -d websup_growth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://websup:websup@db:5432/websup_growth?schema=public"
+      APP_PASSWORD: "${APP_PASSWORD:-verander-dit-wachtwoord}"
+      AUTH_SECRET: "${AUTH_SECRET:-verander-dit-naar-een-lange-random-string}"
+      AI_PROVIDER: "${AI_PROVIDER:-openai}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      AI_MODEL_FAST: "${AI_MODEL_FAST:-gpt-4o-mini}"
+      AI_MODEL_SMART: "${AI_MODEL_SMART:-gpt-4o}"
+      DATA_DIR: "/data"
+    ports:
+      - "3000:3000"
+    volumes:
+      - appdata:/data
+
+volumes:
+  pgdata:
+  appdata:

@@ -1,0 +1,309 @@
+// WebsUp Growth Platform
+// PostgreSQL is de enige bron van waarheid. Het filesystem is ondersteunend.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// MEMORY ENGINE  — centrale kennisbank
+// ─────────────────────────────────────────────
+enum KnowledgeType {
+  MEMORY
+  INSIGHT
+  STRATEGY
+  PROCESS
+  LESSON
+  DECISION
+}
+
+model KnowledgeItem {
+  id        String        @id @default(cuid())
+  type      KnowledgeType @default(MEMORY)
+  title     String
+  body      String        @db.Text
+  priority  Int           @default(5) // 1-10, hoger = belangrijker
+  active    Boolean       @default(true) // alleen actieve items voeden AI-context
+  tags      String[]      @default([])
+  sourceImportId String?
+  sourceImport   ChatImport? @relation(fields: [sourceImportId], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([active, priority])
+  @@index([type])
+}
+
+// ─────────────────────────────────────────────
+// IDEEËN INBOX
+// ─────────────────────────────────────────────
+enum IdeaStatus {
+  NIEUW
+  ONDERZOEKEN
+  GEPLAND
+  BOUWEN
+  AFGEROND
+  GEPARKEERD
+}
+
+enum Level {
+  LAAG
+  MIDDEL
+  HOOG
+}
+
+model Idea {
+  id          String     @id @default(cuid())
+  title       String
+  description String     @db.Text
+  impact      Level      @default(MIDDEL)
+  effort      Level      @default(MIDDEL)
+  urgency     Level      @default(MIDDEL)
+  category    String?
+  status      IdeaStatus @default(NIEUW)
+  tasks       Task[]
+  sourceImportId String?
+  sourceImport   ChatImport? @relation(fields: [sourceImportId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// TAKEN  — koppelbaar aan idee, lead, case of doel
+// ─────────────────────────────────────────────
+enum TaskStatus {
+  OPEN
+  BEZIG
+  WACHT
+  KLAAR
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(OPEN)
+  priority    Level      @default(MIDDEL)
+  dueDate     DateTime?
+
+  ideaId String?
+  idea   Idea?   @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  goalId String?
+  goal   Goal?   @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, dueDate])
+}
+
+// ─────────────────────────────────────────────
+// LEAD CRM  — persoonlijke observaties, geen spam
+// ─────────────────────────────────────────────
+enum LeadStatus {
+  NIEUW
+  GEKWALIFICEERD
+  BENADERD
+  GESPREK
+  OFFERTE
+  KLANT
+  VERLOREN
+}
+
+model Lead {
+  id               String     @id @default(cuid())
+  company          String
+  website          String?
+  contactPerson    String?
+  email            String?
+  phone            String?
+  problemObserved  String?    @db.Text
+  possibleSolution String?    @db.Text
+  lastContactAt    DateTime?
+  nextAction       String?
+  nextActionAt     DateTime?
+  score            Int        @default(0) // kansscore 0-100
+  status           LeadStatus @default(NIEUW)
+  source           String?
+  tasks            Task[]
+  audits           WebsiteAudit[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([status, nextActionAt])
+}
+
+// ─────────────────────────────────────────────
+// CASE BUILDER  — transformatiegericht, 10 secties
+// ─────────────────────────────────────────────
+enum CaseStatus {
+  CONCEPT
+  ACTIEF
+  GEPUBLICEERD
+}
+
+model Case {
+  id              String     @id @default(cuid())
+  title           String
+  client          String?
+  status          CaseStatus @default(CONCEPT)
+  currentSituation String?   @db.Text // 1. Huidige situatie
+  whatStoodOut    String?    @db.Text // 2. Wat viel op
+  idea            String?    @db.Text // 3. Idee
+  solution        String?    @db.Text // 4. Oplossing
+  demo            String?    @db.Text // 5. Demo
+  dashboard       String?    @db.Text // 6. Dashboard
+  workflow        String?    @db.Text // 7. Workflow
+  result          String?    @db.Text // 8. Resultaat
+  futureVision    String?    @db.Text // 9. Toekomstbeeld
+  socialProof     String?    @db.Text // 10. Social proof
+  tasks           Task[]
+  socialContents  SocialContent[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// SOCIAL CONTENT ENGINE  — één case, veel content
+// ─────────────────────────────────────────────
+enum SocialType {
+  LINKEDIN_CASE
+  LINKEDIN_SHORT
+  INSTAGRAM_CAROUSEL
+  REEL_SCRIPT
+  TIKTOK_HOOK
+  STORY
+}
+
+enum ContentStatus {
+  CONCEPT
+  KLAAR
+  GEPUBLICEERD
+}
+
+model SocialContent {
+  id        String        @id @default(cuid())
+  caseId    String?
+  case      Case?         @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  type      SocialType
+  title     String?
+  body      String        @db.Text
+  status    ContentStatus @default(CONCEPT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// CHAT IMPORT  — primaire invoer, ruwe bewaring
+// ─────────────────────────────────────────────
+enum ImportSource {
+  CHATGPT
+  CLAUDE
+  CODEX
+  NOTES
+  OTHER
+}
+
+enum ImportStatus {
+  PENDING   // net geplakt, nog niet geanalyseerd
+  ANALYZED  // AI heeft voorstellen gemaakt
+  APPLIED   // (deels) goedgekeurd en weggeschreven
+}
+
+model ChatImport {
+  id          String       @id @default(cuid())
+  title       String?
+  source      ImportSource @default(OTHER)
+  rawContent  String       @db.Text // ruwe chat blijft altijd bewaard
+  rawFilePath String?      // pad naar dump op disk
+  status      ImportStatus @default(PENDING)
+  extractions Extraction[]
+  knowledgeItems KnowledgeItem[]
+  ideas       Idea[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status])
+}
+
+// Staging: AI-voorstellen komen HIER eerst. Pas na goedkeuring -> echt record.
+enum ExtractionType {
+  IDEA
+  TASK
+  MEMORY
+  CASE
+  STRATEGY
+  SOCIAL
+}
+
+enum ExtractionStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+}
+
+model Extraction {
+  id        String           @id @default(cuid())
+  importId  String
+  import    ChatImport       @relation(fields: [importId], references: [id], onDelete: Cascade)
+  type      ExtractionType
+  title     String
+  payload   Json // gestructureerd voorstel, vorm hangt af van type
+  status    ExtractionStatus @default(PROPOSED)
+  createdRecordId String?    // id van het record dat na acceptatie is gemaakt
+  createdAt DateTime         @default(now())
+
+  @@index([importId, status])
+}
+
+// ─────────────────────────────────────────────
+// DOELEN  — Road to 10 clients
+// ─────────────────────────────────────────────
+model Goal {
+  id        String    @id @default(cuid())
+  title     String
+  target    Int       @default(10)
+  current   Int       @default(0)
+  deadline  DateTime?
+  isPrimary Boolean   @default(false)
+  tasks     Task[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// WEBSITE VERBETERPLAN  — leadmagneet-pijplijn
+// ─────────────────────────────────────────────
+enum AuditStatus {
+  AANGEVRAAGD
+  GEANALYSEERD
+  RAPPORT_KLAAR
+  VERSTUURD
+}
+
+model WebsiteAudit {
+  id           String      @id @default(cuid())
+  url          String
+  requesterName  String?
+  requesterEmail String?
+  leadId       String?
+  lead         Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  status       AuditStatus @default(AANGEVRAAGD)
+  analysis     Json?       // gestructureerde verbeterpunten van AI
+  reportPath   String?     // pad naar gegenereerde pdf/markdown
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([status])
+}
