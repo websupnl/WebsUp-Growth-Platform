@@ -6,17 +6,17 @@ type Size = "sm" | "md";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-brand-gradient text-white font-semibold hover:opacity-90 shadow-sm",
+    "bg-brand-gradient text-white font-semibold hover:opacity-90 shadow-lg shadow-purple-900/20",
   secondary:
-    "bg-surface-raised text-white border border-surface-border hover:border-brand-violet/60",
-  ghost: "text-muted hover:text-white hover:bg-surface-raised",
+    "bg-white/[0.06] text-white/80 border border-white/[0.1] hover:bg-white/[0.1] hover:text-white",
+  ghost: "text-white/40 hover:text-white hover:bg-white/[0.05]",
   danger:
-    "bg-transparent text-red-400 border border-red-400/30 hover:bg-red-400/10",
+    "bg-transparent text-red-400/80 border border-red-400/20 hover:bg-red-400/10 hover:text-red-400",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
+  sm: "h-7 px-3 text-xs",
+  md: "h-9 px-4 text-sm",
 };
 
 export interface ButtonProps
@@ -30,7 +30,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-violet/60",
+        "inline-flex items-center justify-center gap-2 rounded-xl transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-violet/40",
         variants[variant],
         sizes[size],
         className

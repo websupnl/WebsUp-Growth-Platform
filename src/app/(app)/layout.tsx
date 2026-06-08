@@ -18,10 +18,10 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex">
+    <div className="flex h-screen bg-[#06040c]">
       <Sidebar logout={logout} />
-      <main className="h-screen flex-1 overflow-y-auto px-8 py-8">
-        <div className="mx-auto max-w-5xl">{children}</div>
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-8 py-8">{children}</div>
       </main>
     </div>
   );
