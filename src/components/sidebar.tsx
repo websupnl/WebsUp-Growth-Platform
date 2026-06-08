@@ -31,7 +31,7 @@ const nav = [
 ];
 
 // Modules die nog niet gebouwd zijn (Fase 2+). Visueel gedimd.
-const built = new Set(["/", "/import", "/memory", "/ideas", "/tasks", "/leads", "/audits"]);
+const built = new Set(["/", "/import", "/memory", "/ideas", "/tasks", "/leads", "/audits", "/cases", "/content"]);
 
 export function Sidebar({ logout }: { logout: () => void }) {
   const pathname = usePathname();
