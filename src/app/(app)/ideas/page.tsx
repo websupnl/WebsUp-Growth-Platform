@@ -3,21 +3,12 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import { IdeaForm } from "./idea-form";
-import { setIdeaStatus, deleteIdea, aiScoreIdea } from "./actions";
-import type { IdeaStatus, Level } from "@prisma/client";
+import { StatusSelect } from "./status-select";
+import { deleteIdea, aiScoreIdea } from "./actions";
+import type { Level } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
-
-const statuses: IdeaStatus[] = [
-  "NIEUW",
-  "ONDERZOEKEN",
-  "GEPLAND",
-  "BOUWEN",
-  "AFGEROND",
-  "GEPARKEERD",
-];
 
 const levelTone: Record<Level, "neutral" | "orange" | "green"> = {
   LAAG: "neutral",
@@ -68,20 +59,7 @@ export default async function IdeasPage() {
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-2">
-                  <form action={setStatusFromForm.bind(null, idea.id)}>
-                    <Select
-                      name="status"
-                      defaultValue={idea.status}
-                      onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                      className="h-8 text-sm"
-                    >
-                      {statuses.map((s) => (
-                        <option key={s} value={s}>
-                          {s.toLowerCase()}
-                        </option>
-                      ))}
-                    </Select>
-                  </form>
+                  <StatusSelect id={idea.id} current={idea.status} />
                   <form action={aiScoreIdea.bind(null, idea.id)}>
                     <Button type="submit" variant="secondary" size="sm" className="w-full">
                       AI inschatting
@@ -100,9 +78,4 @@ export default async function IdeasPage() {
       )}
     </div>
   );
-}
-
-async function setStatusFromForm(id: string, formData: FormData) {
-  "use server";
-  await setIdeaStatus(id, formData.get("status") as IdeaStatus);
 }
