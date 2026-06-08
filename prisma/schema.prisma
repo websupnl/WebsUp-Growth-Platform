@@ -136,6 +136,8 @@ model Lead {
   score            Int        @default(0) // kansscore 0-100
   status           LeadStatus @default(NIEUW)
   source           String?
+  websiteAnalysis  Json?      // AI-analyse van de website
+  outreach         Json?      // AI-concept voor mail + LinkedIn
   tasks            Task[]
   audits           WebsiteAudit[]
   createdAt        DateTime   @default(now())

@@ -1,39 +1,24 @@
-# --- Dependencies ---
-FROM node:22-alpine AS deps
+# Eén-staps image, bewust simpel en betrouwbaar voor Coolify op je eigen VPS.
+# Bij de start synct de container het databaseschema en draait de seed.
+FROM node:22-alpine
 WORKDIR /app
-RUN apk add --no-cache libc6-compat openssl
+
+RUN apk add --no-cache openssl
+
+# Dependencies (incl. dev, nodig voor build, prisma CLI en tsx-seed)
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# --- Builder ---
-FROM node:22-alpine AS builder
-WORKDIR /app
-RUN apk add --no-cache libc6-compat openssl
-COPY --from=deps /app/node_modules ./node_modules
+# Broncode en build
 COPY . .
-RUN npx prisma generate
 RUN npm run build
 
-# --- Runner ---
-FROM node:22-alpine AS runner
-WORKDIR /app
-RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-USER nextjs
-EXPOSE 3000
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV HOSTNAME=0.0.0.0
 
-CMD ["node", "server.js"]
+EXPOSE 3000
+
+# Bij start: schema naar de database pushen, seed draaien (idempotent), dan starten.
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npx prisma db seed; node_modules/.bin/next start -p 3000 -H 0.0.0.0"]
